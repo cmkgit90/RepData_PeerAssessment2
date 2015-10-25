@@ -1,0 +1,292 @@
+---
+title: "Weather Event Types with respect to Population Health and Economic Consequences, across the United States"
+output: 
+  html_document:
+    keep_md: true
+---
+```{r echo=FALSE}
+Sys.setlocale("LC_ALL", locale="English")
+library("dplyr")
+
+```
+
+## Synopsis
+
+In this report we aim to describe the event types that are most harmful with relation to population health and that have the greatest economic consequences.
+
+To perform this analysis we obtained data from the National Oceanic and Atmospheric Administration (NOAA) which documents the occurrence of storms and other significant weather phenomena having sufficient intensity to cause loss of life, injuries, significant property damage, and/or disruption to commerce, or which are rare, unusual or generatemedia attention.
+
+The information about fatalities and injuries, as well as the data about property damage, crop damage and other losses were computed for each event type. 
+
+From these data, we found that Tornados are most harmful with relation to population health, while Flood cause the greatest economic consequences.
+
+## Data Processing
+
+### Loading and preprocessing the data related to population health
+
+We first read the data from the text file included in the zip archive. The data is a delimited file were fields are delimited with the "," character. 
+
+We obtained data from 1950 to 2011.
+For this analysis we used the columns Event Type, Fatalities, Injuries,Property Damage, Property Damage Magnitude, Crop Damage and Crop Damage Magnitude.
+
+```{r echo=TRUE, cache=TRUE}
+
+# Read the data file
+df <- read.csv("repdata-data-StormData.csv")
+df <- subset (df, select = c(EVTYPE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP))
+```
+
+We check the dimension and the first and the last rows. 
+```{r echo=TRUE}
+dim(df)
+head(df)
+tail(df)
+```
+
+The data contains event types that need to be cleaned up.
+First, put all event types in capital letters.
+Then we proceed in checking each observation with the corresponding event type in the documentation.
+
+```{r echo=TRUE, cache=TRUE}
+
+df$EVTYPE <- toupper(df$EVTYPE)
+
+# Note that the number assigned to the variable corresponds to the
+# number of the event type in the documentation
+
+# Remove all these entries as we have not found the correspondence 
+# with the documentation
+toIgnore <- "(SUMMARY)|(OTHER)|(NO SEVERE WEATHER)|(NON-SEVERE WIND DAMAGE)|(NON SEVERE HAIL)|(LACK OF SNOW)|(NONE)|(APACHE COUNTY)|(BELOW NORMAL PRECIPITATION)|(VOG)|(MONTHLY TEMPERATURE)|(MILD PATTERN)|(NORTHERN LIGHTS)|(REMNANTS OF FLOYD)|(SOUTHEAST)|(GLAZE)|(\\?)"
+toChange2 <- "(AVALANCHE)|(AVALANCE)"
+toChange3 <- "(BLIZZARD)"
+toChange4 <- "(COASTAL)"
+toChange6 <- "(MUD)|(SLIDE)|(LANDSLUMP)|(LANDSPOUT)"
+toChange7 <- "(DENSE FOG)|(DENSE SMOKE)"
+toChange9 <- "(DROUGHT)|(DROWNING)"
+toChange10 <- "(DUST DEVEL)|(DUST DEVIL)"
+toChange11 <- "(DUST STORM)|(DUSTSTORM)|(SAHARAN DUST)|(BLOWING DUST)|(DRY MIRCOBURST WINDS)"
+toChange12 <- "(EXCESSIVE HEAT)|(EXCESSIVELY DRY)|(EXTREME HEAT)|(HEATBURST)|(HIGH TEMPERATURE RECORD)|(RECORD HEAT)|(RECORD HIGH)|(RECORD TEMPERATURE)|(RECORD WARM)|(UNSEASONABLY WARM)|(UNSEASONABLY HOT)|(UNUSUALLY WARM)|(DRY)|(VERY WARM)|(WARM DRY CONDITIONS)|(WARM WEATHER)|(ABNORMAL WARMTH)|(ABNORMALLY DRY)|(UNUSUAL WARMTH)|(TEMPERATURE RECORD)|(DRIEST MONTH)|(EXCESSIVE)|(HIGH)"
+toChange13 <- "(EXTREME COLD)|(EXTREME WIND)|(EXTREME/RECORD COLD)|(EXCESSIVE COLD)|(EXTENDED COLD)|(UNSEASONAL LOW TEMP)|(RECORD LOW)"
+toChange14 <- "(FLASH FLOOD)|(FLASH FLOOODING)|(FLOOD FLASH)|(FLOOD/FLASH)|(DAM BREAK)|(DAM FAILURE)|(RAPIDLY RISING WATER)"
+toChange15 <- "(FLOOD)|(FLOODING)|(FLOODS)|(URBAN)|(STREAM)|(SEVERE TURBULENCE)"
+toChange18 <- "(AIR FUNNEL)|(FUNNEL CLOUD)|(WALL CLOUD)|(FUNNEL)|(FUNNELS)"
+toChange19 <- "(HAIL)"
+toChange20 <- "(HEAT)|(PROLONG WARMTH)|(HOT)"
+toChange21 <- "(HEAVY PRECIPATATION)|(HEAVY PRECIPITATION)|(HEAVY RAIN)|(HEAVY SHOWER)|(HEAVY MIX)|(HVY RAIN)|(EXCESSIVE PRECIPITATION)|(EXCESSIVE RAIN)|(EXCESSIVE RAINFALL)|(EXCESSIVE WETNESS)|(EXTREMELY WET)|(WET)|(UNSEASONAL RAIN)|(TORRENTIAL RAIN)|(RAIN)|(PRECIPITATION)|(STORM)"
+toChange22 <- "(HEAVY SNOW)|(HEAVY WET SNOW)|(SNOWFALL)|(HEAVY LAKE SNOW)|(BLOWING SNOW|(RECORD SNOW)|(RECORD MAY SNOW)|(NEAR RECORD SNOW)|(EXCESSIVE SNOW))"
+toChange23 <- "(HIGH SURF)|(HIGH SWELLS)|(HIGH  SWELLS)|(HIGH SEAS)|(HEAVY SURF)|(HEAVY SWELLS)|(HIGH TIDES)|(HIGH WATER)|(HIGH WAVES)|(BEACH EROSIN)|(BEACH EROSION)|(COASTAL EROSION)|(HEAVY SEAS)|(MARINE ACCIDENT)|(HAZARDOUS SURF)|(ROUGH SEAS)|(ROUGH SURF)"
+toChange24 <- "(HIGH WIND)|(HIGH  WINDS)|(ASTRONOMICAL HIGH TIDE)"
+toChange25 <- "(HURRICANE)|(TYPHOON)"
+toChange26 <- "(ICE)|(ICY)"
+toChange28 <- "(LAKE-EFFECT SNOW)|(LAKE EFFECT SNOW)"
+toChange29 <- "(LIGHTNING)|(LIGNTNING)|(LIGHTING)"
+toChange30 <- "(MARINE HAIL)"
+toChange32 <- "(MARINE MISHAP)|(MARINE STRONG WIND)|(RED FLAG CRITERIA)"
+toChange33 <- "(ROGUE WAVE)"
+toChange34 <- "(RIP CURRENT)"
+toChange35 <- "(SEICHE)"
+toChange38 <- "(BLOW-OUT TIDE)"
+toChange39 <- "(TSTM WIND)|(THUNDERTORM WIND)|(THUNDEERTORM WIND)|(THUDERTORM WIND)|(THUNDERETORM WIND)|(THUNERTORM WIND)|(THUNDETORM WIND)|(TORM WIND)|(THUNDERTORM)|(THUNDERTORM WIND)|(THUNDERTORMW)|(THUNDERTORMWIND)|(THUDERTORM WIND)|(THUNDERTROM WIND)|(THUNDERSTORM  WINDS)|(THUNDERSTORM DAMAGE)|(THUNDERSTORM W INDS)|(THUNDERSTORM WINS)|(THUNDERSTROM)|(THUNDERSTORMW)|(THUNDERSTORMS)|(THUNDERTSORM)|(TSTMW)|(TSTM HEAVY RAIN)|(TSTM WND)|(THUNDERSTORM)|(TSTM)|(METRO TORM MAY)|(DRY CONDITIONS)|(DRY MICROBURST)|(DOWNBURST)|(GUSTNADO)|(MICROBURST)|(WND)"
+toChange40 <- "(TORNADO)|(TORNADOES)|(TORNADOS)|(TORNDAO)"
+toChange42 <- "(TROPICAL STORM)|(WIND)|(STORM SURGE)|(TROPICAL DEPRESSION)"
+toChange44 <- "(VOLCANIC)"
+toChange45 <- "(WAYTERSPOUT)|(WATER SPOUT)|(WATER*SPOUT*)"
+toChange46 <- "(FIRE)|(SMOKE)"
+toChange47 <- "(WINTER STORM)|(RAINSTORM)|(NORMAL PRECIPITATION)|(MONTHLY PRECIPITATION)|(MONTHLY RAINFALL)|(MIXED PRECIP)"
+
+toChange48 <- "(WINTER WEATHER)|(WINTERY MIX)|(WINTER MIX)|(WINTRY MIX)|(LIGHT SNOW)|(FIRST SNOW)|(FIRST FROST)|(SNOW)|(SLEET)"
+
+toChange5 <- "(COLD)|(COOL)|(FREEZE)|(FROST)|(FREEZING)|(HYPERTHERMIA)|(LOW TEMPERATURE)"
+
+df$EVTYPE[grepl(toIgnore, df$EVTYPE)]<-""
+df$EVTYPE[grepl(toChange2, df$EVTYPE)]<-"Avalanche"
+df$EVTYPE[grepl(toChange3, df$EVTYPE)]<-"Blizzard"
+df$EVTYPE[grepl(toChange4, df$EVTYPE)]<-"Coastal Flood"
+df$EVTYPE[grepl(toChange6, df$EVTYPE)]<-"Debris Flow"
+df$EVTYPE[grepl(toChange7, df$EVTYPE)]<-"Dense Fog"
+df$EVTYPE[grepl(toChange9, df$EVTYPE)]<-"Drought"
+df$EVTYPE[grepl(toChange10, df$EVTYPE)]<-"Dust Devil"
+df$EVTYPE[grepl(toChange11, df$EVTYPE)]<-"Dust Storm"
+df$EVTYPE[grepl(toChange13, df$EVTYPE)]<-"Extreme Cold"
+df$EVTYPE[grepl(toChange14, df$EVTYPE)]<-"Flash Flood"
+df$EVTYPE[grepl(toChange15, df$EVTYPE)]<-"Flood"
+df$EVTYPE[grepl(toChange18, df$EVTYPE)]<-"Funnel Cloud"
+df$EVTYPE[grepl(toChange19, df$EVTYPE)]<-"Hail"
+df$EVTYPE[grepl(toChange22, df$EVTYPE)]<-"Heavy Snow"
+df$EVTYPE[grepl(toChange23, df$EVTYPE)]<-"High Surf"
+df$EVTYPE[grepl(toChange24, df$EVTYPE)]<-"High Wind"
+df$EVTYPE[grepl(toChange25, df$EVTYPE)]<-"Hurricane"
+df$EVTYPE[grepl(toChange26, df$EVTYPE)]<-"Ice Storm"
+df$EVTYPE[grepl(toChange28, df$EVTYPE)]<-"Lake-Effect Snow"
+df$EVTYPE[grepl(toChange29, df$EVTYPE)]<-"Lightning"
+df$EVTYPE[grepl(toChange30, df$EVTYPE)]<-"Marine Hail"
+df$EVTYPE[grepl(toChange32, df$EVTYPE)]<-"Marine Strong Wind"
+df$EVTYPE[grepl(toChange33, df$EVTYPE)]<-"Marine Thunderstorm Wind"
+df$EVTYPE[grepl(toChange34, df$EVTYPE)]<-"Rip Current"
+df$EVTYPE[grepl(toChange35, df$EVTYPE)]<-"Seiche"
+df$EVTYPE[grepl(toChange38, df$EVTYPE)]<-"Strong Wind"
+df$EVTYPE[grepl(toChange39, df$EVTYPE)]<-"Thunderstorm Wind"
+df$EVTYPE[grepl(toChange40, df$EVTYPE)]<-"Tornado"
+df$EVTYPE[grepl(toChange42, df$EVTYPE)]<-"Tropical Storm"
+df$EVTYPE[grepl(toChange44, df$EVTYPE)]<-"Volcanic Ash"
+df$EVTYPE[grepl(toChange45, df$EVTYPE)]<-"Water Spout"
+df$EVTYPE[grepl(toChange46, df$EVTYPE)]<-"Wildfire"
+df$EVTYPE[grepl(toChange47, df$EVTYPE)]<-"Winter Storm"
+df$EVTYPE[grepl(toChange48, df$EVTYPE)]<-"Winter Weather"
+df$EVTYPE[grepl(toChange21, df$EVTYPE)]<-"Heavy Rain"
+
+# The most general ones must be the last
+df$EVTYPE[grepl(toChange12, df$EVTYPE)]<-"Excessive Heat"
+df$EVTYPE[grepl(toChange20, df$EVTYPE)]<-"Heat"
+df$EVTYPE[grepl(toChange5, df$EVTYPE)]<-"Cold"
+
+
+# Now remove the entries that will be ignored
+toBeRemoved<-which(df$EVTYPE=="")
+df<-droplevels(df[-toBeRemoved,])
+df$EVTYPE <- factor(df$EVTYPE)
+
+```
+
+We then group fatalities and injuries per event type
+```{r echo=TRUE}
+harmful_incidents_per_event_type <- df %>%
+  group_by(EVTYPE) %>%
+  summarise_each(funs(sum), FATALITIES, INJURIES)
+```
+
+And compute the total number of injuries per event type and remove those events to which none incidents have been reported
+```{r echo=TRUE}
+# Add a column with the total number of incidents per event type
+# and remove those events without incidents
+harmful_incidents_per_event_type$TOTAL <- 
+  harmful_incidents_per_event_type$FATALITIES + harmful_incidents_per_event_type$INJURIES
+harmful_incidents_per_event_type <- harmful_incidents_per_event_type %>%
+  subset(TOTAL>0)
+```
+
+We order the event types according to the number of incidents.
+```{r echo=TRUE}
+harmful_incidents_per_event_type <- harmful_incidents_per_event_type[order(-harmful_incidents_per_event_type$TOTAL) , ]
+```
+
+And we add a column which indicates, for each type of event, the percent of the total number of incidents that it corresponds. We want to know which event types correspond to at least 80% of the incidents.
+
+```{r echo=TRUE}
+
+total_nb_incidents <- sum(harmful_incidents_per_event_type$TOTAL)
+
+# Add column that indicates the percentage of incidents of this type
+# from the total
+harmful_incidents_per_event_type$PERCENT <- (harmful_incidents_per_event_type$TOTAL / total_nb_incidents)*100
+```
+
+We then consider only the events that correpond to more than 80% of the incidents
+```{r echo=TRUE}
+# Remove entries that have less than 1% of incidents
+# From the date we know that the sum of the cases that have more than 1%
+# of the incidents correspond to more than 80% of the total incidents
+harmful_incidents_per_event_type <- harmful_incidents_per_event_type %>%
+  subset(PERCENT > 1)
+```
+
+### Preprocessing the data related to economic consequences of the events.
+
+Now we preprocess the data related to economic consequences of the events. Property damages and crop damages are considered. It is necessary to compute the economic value considering the magnitude of the damage, which is documented using K to thousand, M to millions and B to billions.
+
+We add a new column TOTAL to indicate the economic consequence as the sum of the property damage and the crop damage considering their magnitudes.
+
+```{r echo=TRUE}
+
+df$PROPDMGEXP <- tolower(df$PROPDMGEXP)
+df$CROPDMGEXP <- tolower(df$CROPDMGEXP)
+PropScale <- (df$PROPDMGEXP=="k")*1e3+(df$PROPDMGEXP=="m")*1e6+(df$PROPDMGEXP=="b")*1e9+(df$PROPDMGEXP=="h")*1e2
+CropScale <- (df$CROPDMGEXP=="k")*1e3+(df$CROPDMGEXP=="m")*1e6+(df$CROPDMGEXP=="b")*1e9+(df$CROPDMGEXP=="h")*1e2
+
+TOTAL <- df$PROPDMG*PropScale+df$CROPDMG*CropScale
+df <- cbind(df,TOTAL)
+```
+
+We first group damage, water flood damage, crop damage,and delayed damage per event type
+```{r echo=TRUE}
+damage_per_event_type <- df %>%
+  group_by(EVTYPE) %>%
+  summarise_each(funs(sum), TOTAL)
+```
+
+Then we compute the total damage per event type and remove those events to which none damage has been reported
+```{r echo=TRUE}
+# Remove those events without incidents
+damage_per_event_type <- damage_per_event_type %>%
+  subset(TOTAL>0)
+```
+
+We order the event types according to the damage that occured as a consequence of the events.
+```{r echo=TRUE}
+damage_per_event_type <- damage_per_event_type[order(-damage_per_event_type$TOTAL) , ]
+```
+
+We add a column which indicates, for each type of event, the percent of the total damage that has been generated. We consider only the first 10 rows, since it corresponds to at least 80% of the total damage.
+
+```{r echo=TRUE}
+
+total_damage <- sum(damage_per_event_type$TOTAL)
+
+# Add column that indicates the percentage of incidents of this type
+# from the total
+damage_per_event_type$PERCENT <- (damage_per_event_type$TOTAL / total_damage)*100
+
+# Get top ten type of events in terms of damage
+damage_per_event_type <- damage_per_event_type[1:10,]
+
+```
+
+
+## Results
+
+
+### Across the United States, which types of events are most harmful with respect to population health?
+
+Considering the incidents that occured with respect to population health, involving fatalities and injuries, the events that are most harmful are:
+
+* Tornados, reporting 97043 incidents, corresponding to 69.44% of the total number of incidents.
+* Thunderstorm Wind: 10203 incidents (6.56%)
+* Excessive heat: 8808 incidents (5.66%)
+* Flood: 7386 incidents (4.75%)
+* Lightning: 6049 incidents (3.89%)
+* Heat: 3593 incidents (2.31%)
+* Flash Flood: 2838 incidents (1.82%)
+* Ice Storm: 2277 incidents (1.46%)
+* High Wind: 1819 incidents (1.17%)
+* Wildfire: 1689 incidents (1.09%)
+* Winter Storm: 1582 incidents (1.01%)
+
+```{r echo=TRUE}
+print(harmful_incidents_per_event_type)
+
+barplot(harmful_incidents_per_event_type$TOTAL, 
+        main="Total number of incidents (fatalities and injuries) per event type",
+        col= heat.colors(10),
+        legend.text=harmful_incidents_per_event_type$EVTYPE)
+
+```
+
+### Across the United States, which types of events have the greatest economic consequences?
+
+Considering the economic consequences related to each type of event, the events that have the greatest economic consequences are:
+
+* Flood
+* Hurricane
+* Tornado
+* Tropical Storm
+* Hail
+
+```{r echo=TRUE}
+print(damage_per_event_type[, c("EVTYPE", "TOTAL", "PERCENT")])
+barplot(damage_per_event_type$TOTAL/1000000000,
+        main="Economic consequences per event type (in billions of US Dollars)",
+        col= heat.colors(10),
+        legend.text=damage_per_event_type$EVTYPE)
+
+```
+
